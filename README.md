@@ -2,6 +2,12 @@
 
 Ensure you have python3, pip and virtualenv installed in your OS, then:
 
+Fork/clone to your PC:
+```
+git clone https://github.com/wathika-eng/wakatime_flask_api.git
+cd wakatime_flask_api
+```
+
 Create and activate a virtual environment
 ```
 virtualenv venv
