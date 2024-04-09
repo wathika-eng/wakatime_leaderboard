@@ -30,9 +30,9 @@ pip install -r requirements.txt
 
 Run main app:
 ```
-flask run app
+flask run
 ```
 or
 ```
-flass run ip_app.py
+python ip_app.py
 ```
