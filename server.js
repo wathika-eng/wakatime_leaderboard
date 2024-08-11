@@ -25,7 +25,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 
 app.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname, 'frontend/', 'index.html'));
+	res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
 });
 
 app.get('/test', (req, res) => {
@@ -33,7 +33,7 @@ app.get('/test', (req, res) => {
 });
 
 // cache('10 minutes'),
-app.get('/api', async (req, res) => {
+app.get('/api', cache('60'),async (req, res) => {
 	const country_code = req.query.country_code;
 	const page = parseInt(req.query.page) || 1;
 	const limit = 10;
