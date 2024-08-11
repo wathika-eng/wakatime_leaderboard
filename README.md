@@ -30,5 +30,8 @@ npm run build --prefix frontend
 npm run dev
 ```
 
+Endpoints:
+`http://localhost:5000/api`
+
 Original endpoint:
 `https://wakatime.com/api/v1/leaders?country_code={KE}`
