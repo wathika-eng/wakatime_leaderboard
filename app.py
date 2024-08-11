@@ -1,31 +1,22 @@
-# imports to use
 from flask import Flask, jsonify, request, redirect, url_for
 from flask_cors import CORS
+from flask_caching import Cache
 import requests
-import json
 import time
 
-
-"""
-Main API can be found at:
-https://wakatime.com/api/v1/leaders
-https://wakatime.com/api/v1/leaders?country_code=KE
-https://wakatime.com/developers/
-"""
-
 app = Flask(__name__)
-
 CORS(app)
 
+# Configure Flask-Caching
+cache = Cache(app, config={"CACHE_TYPE": "simple"})
 
 MAX_REQUESTS_PER_HOUR = 60
-
 request_count = 0
-
 last_reset_time = time.time()
 
 
 @app.route("/api/leaders", methods=["GET"])
+@cache.cached(timeout=1200, query_string=True)  # Cache results for 20 minutes
 def get_top_leaders():
     global request_count, last_reset_time
     current_time = time.time()
@@ -44,13 +35,13 @@ def get_top_leaders():
             429,
         )
     else:
-
         request_count += 1
 
     url = "https://wakatime.com/api/v1/leaders"
 
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 10))
+    q = request.args.get("q", "")
 
     offset = (page - 1) * per_page
 
@@ -61,7 +52,7 @@ def get_top_leaders():
         params["country_code"] = country_code
 
     response = requests.get(url, params=params)
-
+    print(response.url)
     if response.status_code == 200:
         data = response.json()["data"]
         stripped_data = []
@@ -69,11 +60,13 @@ def get_top_leaders():
         for leader in data:
             if "user" in leader:
                 user = leader["user"]
+                username = user.get("username", "")
                 city = user.get("city")
                 if city:
                     user_title = city.get("title", "")
                     country_code = city.get("country_code", "")
             else:
+                username = ""
                 user_title = ""
                 country_code = ""
 
@@ -92,16 +85,23 @@ def get_top_leaders():
 
             stripped_leader = {
                 "rank": leader["rank"],
-                "username": user["username"],
-                "city": user_title,
+                "username": username,
+                "user_title": user_title,
                 "country_code": country_code,
                 "running_daily": running_daily,
                 "running_total_human_readable": running_total_human_readable,
                 "top_3_languages": top_3_languages,
             }
             stripped_data.append(stripped_leader)
+        if q:
+            stripped_data = [
+                leader
+                for leader in stripped_data
+                if q.lower() in leader["username"].lower()
+            ]
+        else:
+            stripped_data = stripped_data
 
-        # Include pagination metadata in the response
         return jsonify({"page": page, "per_page": per_page, "data": stripped_data})
 
     else:

@@ -1,11 +1,6 @@
-"""
-Will get users IP then pass it as a parameter to wakatime API
-User will get results based on IP (Country Code)
-https://www.myip.com/api-docs/
-"""
-
 from flask import Flask, jsonify, request, redirect, url_for
 from flask_cors import CORS
+from flask_caching import Cache
 import requests
 import json
 import time
@@ -13,18 +8,24 @@ import time
 app = Flask(__name__)
 CORS(app)
 
-# Set the maximum number of requests allowed per hour
+
+app.config["CACHE_TYPE"] = "SimpleCache"  #
+app.config["CACHE_DEFAULT_TIMEOUT"] = 1200
+
+cache = Cache(app)
+
+
 MAX_REQUESTS_PER_HOUR = 50
 request_count = 0
 last_reset_time = time.time()
 
 
 @app.route("/api/leaders", methods=["GET"])
+@cache.cached(timeout=1200, query_string=True)
 def get_top_leaders():
     global request_count, last_reset_time
     current_time = time.time()
 
-    # Reset request count if an hour has passed since the last reset
     if current_time - last_reset_time > 3600:
         request_count = 0
         last_reset_time = current_time
@@ -37,18 +38,13 @@ def get_top_leaders():
                 }
             ),
             429,
-        )  # Return 429 for Too Many Requests
+        )
     else:
         request_count += 1
 
     url = "https://wakatime.com/api/v1/leaders"
-    # api_key = "your_api_key_here"
-
-    # headers = {"Authorization": f"Bearer {api_key}"}
-
     params = {"limit": 10}
 
-    # Get user's IP information
     ip_info_response = requests.get("https://api.myip.com")
     if ip_info_response.status_code == 200:
         ip_info = ip_info_response.json()
@@ -114,7 +110,6 @@ def get_top_leaders():
         )
 
 
-# Catch-all route to redirect to main URL for undefined routes
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def catch_all(path):
@@ -122,4 +117,4 @@ def catch_all(path):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000, load_dotenv=True)
