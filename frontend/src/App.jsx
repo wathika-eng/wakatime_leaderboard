@@ -5,7 +5,7 @@ import Navbar from './Components/Navbar';
 import axios from 'axios';
 
 function App() {
-	const BaseURL = 'http://localhost:5000/api';
+	const BaseURL = 'https://wakatime-leaderboard.vercel.app/api';
 	const [data, setData] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);

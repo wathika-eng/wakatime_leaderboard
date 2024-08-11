@@ -24,6 +24,8 @@ npm install && npm install --prefix frontend
 npm run build --prefix frontend
 ```
 
+Change `BaseURL` in `frontend/src/api/index.js` to `http://localhost:5000/api`
+
 4. Run the code
 
 ```
