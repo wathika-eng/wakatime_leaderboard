@@ -9,7 +9,7 @@ To get started:
 1. Clone the repository
 
 ```
-git clone
+git clone https://github.com/wathika-eng/wakatime_leaderboard --depth 1 && cd wakatime_leaderboard
 ```
 
 2. Install the dependencies
@@ -29,3 +29,6 @@ npm run build --prefix frontend
 ```
 npm run dev
 ```
+
+Original endpoint:
+`https://wakatime.com/api/v1/leaders?country_code={KE}`
