@@ -31,35 +31,49 @@ app.get('/', (req, res) => {
 app.get('/test', (req, res) => {
 	return res.json({ message: 'Hello World' });
 });
-app.get('/api', cache('10 minutes'), async (req, res) => {
-	//cache('30 minutes')
-	// const parsedurl = url.parse(req.url, true);
-	const country_code = JSON.stringify(req.url);
-	let trimedcode = country_code.split('=')[1];
-	console.log(trimedcode);
-	const apime = 'https://wakatime.com/api/v1/leaders';
-	try {
-		const response = await needle('get', apime, {
-			headers: {
-				Authorization: `Bearer ${process.env.WAKATIME_API_KEY}`,
-			},
-		});
-		const data = response.body;
-		const filteredData = data.data.filter(
-			(item) => item.country_code === trimedcode
-		);
-		return res.json(filteredData);
-	} catch (error) {
-		console.error(error);
-	} finally {
-		console.log('API call done');
-	}
+
+// cache('10 minutes'),
+app.get('/api', async (req, res) => {
+    const country_code = req.query.country_code;
+    const page = parseInt(req.query.page) || 1; // Default to page 1 if not provided
+    const limit = 10; // Items per page
+    const apime = 'https://wakatime.com/api/v1/leaders';
+    
+    try {
+        const response = await needle('get', apime, {
+            headers: {
+                Authorization: `Bearer ${process.env.WAKATIME_API_KEY}`,
+            },
+        });
+        const data = response.body;
+        const filteredData = data.data.filter(
+            (item) => item.country_code === country_code
+        );
+        
+        // Pagination logic
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = filteredData.slice(startIndex, endIndex);
+        
+        return res.json({
+            page,
+            totalItems: filteredData.length,
+            totalPages: Math.ceil(filteredData.length / limit),
+            data: paginatedData
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'An error occurred while fetching data' });
+    } finally {
+        console.log('API call done');
+    }
 });
+
 /*
 if not port is set on the .env file, use the default 3000
 Then give the URL to the user
 */
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
 	console.log(`Server running on port http://localhost:${PORT}/`);
 });

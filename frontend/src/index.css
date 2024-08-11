@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.pointer {
+	cursor: pointer;
+}
+
+:root {
+	--btn-bg-color: white;
+	--btn-text-color: #000;
+	--btn-border-color: #000;
+	--btn-hover-bg-color: #000;
+	--btn-hover-text-color: white;
+}
+
+.btn {
+	background-color: var(--btn-bg-color);
+	color: var(--btn-text-color);
+	border: 1px solid var(--btn-border-color);
+	padding: 10px 20px;
+	font-size: 16px;
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.previousBtn {
+	margin-right: 20px;
+}
+
+.nextBtn {
+	margin-left: 20px;
+}
+
+.btn:hover {
+	background-color: var(--btn-hover-bg-color);
+	color: var(--btn-hover-text-color);
+	cursor: pointer;
+}
+
+.btn:focus {
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+}
