@@ -1,52 +1,25 @@
-# wakatime_flask_api
+## Rewrite of
 
-Ensure you have python3, pip and virtualenv installed in your OS, then:
+To run the code, you need to have the following installed:
 
-Fork/clone to your PC:
+- Node == 18
 
-```
-git clone https://github.com/wathika-eng/wakatime_flask_api.git --depth 1
-cd wakatime_flask_api
-```
+To get started:
 
-Create and activate a virtual environment
+1. Clone the repository
 
 ```
-virtualenv .venv
+git clone
 ```
 
-Linux:
+2. Install the dependencies
 
 ```
-source .venv/bin/activate
+npm install
 ```
 
-Windows:
+3. Run the code
 
 ```
-source .venv/scripts/activate
-```
-
-Install all requirements needed:
-
-```
-pip install -r requirements.txt
-```
-
-Copy the `.env.example` file to `.env` and fill in the required fields.
-
-```
-cp .env.example .env
-```
-
-Run main app:
-
-```
-flask run
-```
-
-or
-
-```
-python ip_app.py
+npm run dev
 ```
