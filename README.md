@@ -15,10 +15,16 @@ git clone
 2. Install the dependencies
 
 ```
-npm install
+npm install && npm install --prefix frontend
 ```
 
-3. Run the code
+3. Build the frontend client
+
+```
+npm run build --prefix frontend
+```
+
+4. Run the code
 
 ```
 npm run dev
