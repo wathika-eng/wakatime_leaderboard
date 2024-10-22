@@ -31,6 +31,9 @@ app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
 });
 
+app.get('/test', (req, res) => {
+	return res.json({ message: 'Hello from the server!' });
+});
 // Location endpoint to get the user's country based on their IP
 app.get('/api/location', (req, res) => {
 	const ip =

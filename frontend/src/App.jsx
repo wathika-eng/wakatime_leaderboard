@@ -6,7 +6,7 @@ import axios from 'axios';
 import { debounce } from 'lodash'; // For debouncing search
 
 function App() {
-	const BaseURL = 'http://localhost:5000/api/fetch';
+	const BaseURL = 'https://wakatime-leaderboard.onrender.com/api/fetch';
 
 	// State variables
 	const [data, setData] = useState([]);
