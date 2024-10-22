@@ -5,25 +5,25 @@ const cors = require('cors');
 const apicache = require('apicache');
 const path = require('path');
 const geoip = require('geoip-lite');
-const e = require('express');
+const moment = require('moment');
 
 const app = express();
-const cache = apicache.middleware;
+const cache = apicache.middleware; // Caching middleware
 const PORT = process.env.PORT || 5000;
 
+// Middleware setup
 app.use(cors());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 
+// Initialize dailyUserData as a Map for better performance
+const dailyUserData = new Map();
+
+// Function to get country from IP
 const getCountryFromIP = (ip) => {
-	try {
-		const cleanIP = ip.replace(/^::ffff:/, '');
-		const geo = geoip.lookup(cleanIP);
-		console.log(`IP: ${cleanIP}, Country: ${geo ? geo.country : 'Unknown'}`);
-		return geo ? geo.country : null;
-	} catch (error) {
-		console.error('Error getting country from IP:', error);
-		return null;
-	}
+	const cleanIP = ip.replace(/^::ffff:/, '');
+	const geo = geoip.lookup(cleanIP);
+	return geo ? geo.country : 'KE'; // Default to Kenya
 };
 
 // Serve the frontend application
@@ -33,94 +33,64 @@ app.get('/', (req, res) => {
 
 // Location endpoint to get the user's country based on their IP
 app.get('/api/location', (req, res) => {
-	try {
-		const ip =
-			req.headers['x-forwarded-for']?.split(',')[0] ||
-			req.headers['x-real-ip'] ||
-			req.socket.remoteAddress;
-
-		const countryCode = getCountryFromIP(ip) || 'KE'; // Default to Kenya if unknown
-		res.json({ countryCode });
-	} catch (error) {
-		console.error('Error in /api/location endpoint:', error);
-		res.json({ countryCode: 'KE' }); // Default response in case of failure
-	}
+	const ip =
+		req.headers['x-forwarded-for']?.split(',')[0] ||
+		req.headers['x-real-ip'] ||
+		req.socket.remoteAddress;
+	const countryCode = getCountryFromIP(ip);
+	res.json({ countryCode });
 });
 
-app.get('/api', cache('60 minutes'), async (req, res) => {
+// Fetch leaderboard data with caching
+app.post('/api/fetch', cache('40 minutes'), async (req, res) => {
 	try {
-		// Get parameters from query string
-		let country_code = req.query.country_code;
-		const page = parseInt(req.query.page) || 1;
-		const limit = 10;
-		const search = req.query.search?.toLowerCase() || '';
+		const { country_code, page, search = '' } = req.body.params;
+		const baseUrl = 'https://wakatime.com/api/v1/leaders';
+		const url = `${baseUrl}?country_code=${country_code}&page=${page}&search=${encodeURIComponent(
+			search
+		)}`;
 
-		// If no country code provided, determine from IP
-		if (!country_code) {
-			const ip =
-				req.headers['x-forwarded-for']?.split(',')[0] ||
-				req.headers['x-real-ip'] ||
-				req.socket.remoteAddress;
-
-			country_code = getCountryFromIP(ip) || 'KE'; // Default to Kenya if unknown
-		}
-
-		// WakaTime API endpoint with country filtering
-		const wakatimeUrl = `https://wakatime.com/api/v1/leaders?country_code=${country_code}`;
-		console.log(`Fetching data from WakaTime API: ${wakatimeUrl}`);
-
-		// Make the API request to WakaTime
-		const response = await needle('get', wakatimeUrl, {
-			headers: {
-				Authorization: `Bearer ${process.env.WAKATIME_API_KEY}`,
-			},
+		// Fetch data from WakaTime API
+		const response = await needle('get', url, {
+			headers: { Authorization: `Bearer ${process.env.WAKATIME_API_KEY}` },
 		});
 
-		const data = response.body;
-
-		if (!data || !data.data) {
+		if (!response.body || !response.body.data) {
 			return res
-				.status(404)
-				.json({ error: 'No data received from WakaTime API' });
+				.status(500)
+				.json({ error: 'No data available from WakaTime API' });
 		}
 
-		// Extract and clean the data
-		const cleanedData = data.data.map((item) => ({
-			rank: item.rank,
-			display_name: item.user.display_name,
-			username: item.user.username,
-			country_code: item.user.country_code,
-			total_seconds: item.running_total.total_seconds,
-			total_hours: (item.running_total.total_seconds / 3600).toFixed(2), // Convert to hours
-		}));
+		const data = response.body.data;
+		const date = moment().format('YYYY-MM-DD');
 
-		// Filter the data based on search term (if provided)
-		const filteredData = cleanedData.filter((item) => {
-			return search
-				? item.display_name.toLowerCase().includes(search) ||
-						item.username.toLowerCase().includes(search)
-				: true;
+		// Store daily user data efficiently
+		if (!dailyUserData.has(date)) {
+			dailyUserData.set(date, new Map());
+		}
+
+		const userMap = dailyUserData.get(date);
+
+		data.forEach((item) => {
+			const userEntry = {
+				username: item.user.username,
+				display_name: item.user.display_name,
+				running_total: item.running_total.total_time,
+				rank: item.rank,
+				country_code: country_code,
+			};
+
+			// Add or update user entry
+			userMap.set(userEntry.username, userEntry);
 		});
 
-		// Paginate results
-		const startIndex = (page - 1) * limit;
-		const paginatedData = filteredData.slice(startIndex, startIndex + limit);
-
-		// Send the cleaned and paginated data back to the client
-		return res.json({
-			page,
-			totalItems: filteredData.length,
-			totalPages: Math.ceil(filteredData.length / limit),
-			data: paginatedData,
-			detectedCountry: country_code,
-		});
+		// Return the response with total pages
+		return res.json({ data, totalPages: response.body.total_pages });
 	} catch (error) {
-		console.error('Error in /api endpoint:', error);
-		return res.status(500).json({
-			error: 'An error occurred while fetching data',
-			details:
-				process.env.NODE_ENV === 'development' ? error.message : undefined,
-		});
+		console.error('Error fetching data:', error);
+		return res
+			.status(500)
+			.json({ error: 'An error occurred while fetching data' });
 	}
 });
 
